@@ -2,398 +2,361 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Iceberg Floating Demo</title>
+    <title>Iceberg Floating Demo + SAR Lab</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 820px; margin: 20px auto; }
-        #classification {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f4f4f4;
-            border-radius: 5px;
-        }
-        #canvas {
-            border: 1px solid black;
-            touch-action: none; /* Prevents scrolling while drawing */
-            cursor: crosshair;
-            display: block;
-        }
-        .controls { margin-bottom: 10px; }
-        button {
-            padding: 10px 15px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 820px; margin: 20px auto; background: #fdfdfd; color: #333; }
+        #classification { margin-top: 10px; padding: 10px; background: #f4f4f4; border-radius: 5px; border-left: 5px solid #2c7bb6; }
+        #canvas { border: 1px solid black; touch-action: none; cursor: crosshair; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .controls { margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+        button { padding: 10px 15px; font-size: 14px; font-weight: bold; cursor: pointer; border-radius: 5px; border: 1px solid #ccc; transition: 0.2s; }
         #completeBtn { background-color: #2c7bb6; color: white; border: none; display: none; }
         #resetBtn { background-color: #e74c3c; color: white; border: none; }
+        #infoBtn { background-color: #2ecc71; color: white; border: none; }
+        #shapePhysicsBtn { background-color: #9b59b6; color: white; border: none; }
+        #freezeBtn { background-color: #f39c12; color: white; border: none; }
+        button:hover { opacity: 0.8; }
+
+        /* SAR STYLING */
+        .sar-section { margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 20px; position: relative; }
+        #sarCanvas { background: #010203; border: 1px solid #333; display: block; margin-top: 10px; border-radius: 4px; }
+        .sar-controls { 
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; 
+            background: #eee; padding: 15px; border-radius: 5px; margin-top: 10px;
+        }
+        .sar-controls label { font-size: 11px; font-weight: bold; display: block; margin-bottom: 3px; color: #555; }
+        #sarInfo { margin-top: 10px; padding: 15px; background: #1a1a1a; color: #0f0; font-family: 'Courier New', monospace; font-size: 13px; border-radius: 5px; border: 1px solid #333; }
+        
+        /* INFO OVERLAY PANELS */
+        .info-panel { 
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.98); z-index: 100; padding: 25px; box-sizing: border-box;
+            border: 2px solid #2c7bb6; border-radius: 8px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .close-info { float: right; color: #e74c3c; cursor: pointer; font-weight: bold; font-size: 18px; }
+        .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+        .guide-box { background: #f0f7ff; padding: 10px; border-radius: 4px; border: 1px solid #d0e0f0; font-size: 13px; }
+        
+        /* SCATTERING DIAGRAMS */
+        .diag-container { display: flex; justify-content: space-around; background: #000; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .diag-box { text-align: center; color: white; font-size: 10px; border: 1px solid #444; padding: 5px; width: 22%; }
+        .diag-svg { width: 60px; height: 60px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
-    <h1>Iceberg Floating and Classification Model</h1>
-    <p>Draw an iceberg cross-section. Use the button or double-click to finish.</p>
-
+    <h1>Iceberg Floating & SAR Simulation</h1>
+    
     <div class="controls">
         <button id="completeBtn">Finish Iceberg</button>
         <button id="resetBtn">Reset / Clear</button>
+        <button id="freezeBtn">Freeze Animation</button>
+        <button id="infoBtn">? Physics Guide</button>
+        <button id="shapePhysicsBtn">🧊 Shape Physics</button>
     </div>
 
     <canvas id="canvas" width="800" height="500"></canvas>
     <div id="classification">Draw an iceberg to see classification.</div>
 
+    <div class="sar-section">
+        <div id="infoPanel" class="info-panel">
+            <span class="close-info" onclick="$('#infoPanel').fadeOut()">✕</span>
+            <h3>SAR Lab: The Science of Radar</h3>
+            
+            <h4>Scattering Mechanisms</h4>
+            <div class="diag-container">
+                <div class="diag-box">
+                    <svg class="diag-svg" viewBox="0 0 100 100">
+                        <line x1="10" y1="80" x2="90" y2="80" stroke="white" stroke-width="2"/>
+                        <line x1="20" y1="20" x2="50" y2="80" stroke="yellow" stroke-width="2" marker-end="url(#arrow)"/>
+                        <line x1="50" y1="80" x2="80" y2="20" stroke="yellow" stroke-width="1" stroke-dasharray="2"/>
+                    </svg><br>Specular
+                </div>
+                <div class="diag-box">
+                    <svg class="diag-svg" viewBox="0 0 100 100">
+                        <path d="M 10 80 Q 30 70 50 80 Q 70 90 90 80" fill="none" stroke="white" stroke-width="2"/>
+                        <line x1="20" y1="20" x2="50" y2="78" stroke="yellow" stroke-width="2"/>
+                        <line x1="50" y1="78" x2="40" y2="40" stroke="yellow" stroke-width="1"/>
+                        <line x1="50" y1="78" x2="60" y2="40" stroke="yellow" stroke-width="1"/>
+                        <line x1="50" y1="78" x2="50" y2="30" stroke="yellow" stroke-width="1"/>
+                    </svg><br>Diffuse
+                </div>
+                <div class="diag-box">
+                    <svg class="diag-svg" viewBox="0 0 100 100">
+                        <polyline points="10,20 10,80 90,80" fill="none" stroke="white" stroke-width="3"/>
+                        <polyline points="40,10 10,60 30,80 80,30" fill="none" stroke="yellow" stroke-width="2"/>
+                    </svg><br>Double Bounce
+                </div>
+                <div class="diag-box">
+                    <svg class="diag-svg" viewBox="0 0 100 100">
+                        <rect x="20" y="50" width="60" height="40" fill="rgba(255,255,255,0.2)" stroke="white"/>
+                        <line x1="30" y1="10" x2="50" y2="60" stroke="yellow" stroke-width="2"/>
+                        <circle cx="50" cy="70" r="2" fill="yellow"/><circle cx="60" cy="60" r="2" fill="yellow"/>
+                        <line x1="50" y1="70" x2="40" y2="10" stroke="yellow" stroke-width="1"/>
+                    </svg><br>Volume
+                </div>
+            </div>
+
+            <div class="guide-grid">
+                <div class="guide-box">
+                    <strong>Mechanism Definitions:</strong><br>
+                    • <b>Specular:</b> Mirror-like bounce. Energy moves away from sensor (Dark).<br>
+                    • <b>Diffuse:</b> Rough surface scattering. Energy returns in many directions (Grey).<br>
+                    • <b>Double Bounce:</b> Wall + Floor. Very high return energy (Bright).<br>
+                    • <b>Volume:</b> Internal scattering within ice bubbles/cracks (Soft Glow).
+                </div>
+                <div class="guide-box">
+                    <strong>Polarization Architecture</strong><br>
+                    • <b>Single-Pol:</b> General structural view.<br>
+                    • <b>Dual-Pol:</b> Adds Cross-Pol (HV) which isolates volume scattering, ignoring sea clutter.<br>
+                    • <b>Quad-Pol:</b> Full matrix (HH, VV, HV, VH) for advanced target decomposition.
+                </div>
+            </div>
+        </div>
+
+        <div id="shapePanel" class="info-panel">
+            <span class="close-info" onclick="$('#shapePanel').fadeOut()">✕</span>
+            <h3>Iceberg Shape SAR Physics</h3>
+            <div class="guide-grid">
+                <div class="guide-box">
+                    <strong>Tabular (Flat Top)</strong><br>
+                    Smooth tops often show <b>Specular Reflection</b> (Dark). However, the massive vertical faces create intense <b>Double-Bounce</b> returns where they meet the water line.
+                </div>
+                <div class="guide-box">
+                    <strong>Drydock (U-Notched)</strong><br>
+                    The "canyon" shape acts as a giant <b>Trihedral Corner Reflector</b>. Radar waves bounce multiple times within the notch before returning, making the center extremely bright.
+                </div>
+                <div class="guide-box">
+                    <strong>Pinnacle (Steep)</strong><br>
+                    Subject to <b>Layover</b> and <b>Shadowing</b>. One face will be ultra-bright because it is perpendicular to the beam, while the far side is a "Radar Shadow" with zero return.
+                </div>
+                <div class="guide-box">
+                    <strong>Dome (Curved)</strong><br>
+                    Presents a variety of incidence angles across a single surface. This produces a smooth gradient of <b>Diffuse Scattering</b>, usually appearing as a bright "blob" without hard glints.
+                </div>
+            </div>
+        </div>
+
+        <h2>SAR Simulation (Radar Signature)</h2>
+        <canvas id="sarCanvas" width="800" height="320"></canvas>
+        
+        <div id="sarInfo">
+            <strong>Radar State:</strong> <span id="modeStatus">Standby...</span><br>
+            <span id="physicsDesc">Waiting for iceberg...</span>
+        </div>
+
+        <div class="sar-controls">
+            <div><label>Polarization (Pol)</label><select id="pol" style="width:100%"><option>HH</option><option>VV</option><option>HV</option></select></div>
+            <div><label>Incidence Angle (°)</label><input type="range" id="angle" min="15" max="75" value="35" style="width:100%"></div>
+            <div><label>Surface Roughness</label><input type="range" id="rough" min="0" max="100" value="25" style="width:100%"></div>
+            <div><label>Dielectric (Ice Er)</label><input type="range" id="dielectric" min="2" max="5" step="0.1" value="3.1" style="width:100%"></div>
+            <div><label>Volume Scattering</label><input type="range" id="volume" min="0" max="100" value="30" style="width:100%"></div>
+            <div><label>System Noise (Speckle)</label><input type="range" id="noise" min="0" max="100" value="30" style="width:100%"></div>
+        </div>
+    </div>
+
 <script>
 $(function() {
     const canvas = $("#canvas")[0];
     const ctx = canvas.getContext("2d");
+    const sarCanvas = $("#sarCanvas")[0];
+    const sarCtx = sarCanvas.getContext("2d");
     const yZero = canvas.height / 3;
     
     let icebergs = [];
     let drawingPoints = [];
     let isDrawing = false;
+    let isFrozen = false;
     let lastClassification = null;
+    let waveTime = 0;
+    let currentRadarState = "Standby";
 
+    // UI Helpers
+    $('#infoBtn').on('click', () => $('#infoPanel').fadeToggle());
+    $('#shapePhysicsBtn').on('click', () => $('#shapePanel').fadeToggle());
+    $('#freezeBtn').on('click', function() {
+        isFrozen = !isFrozen;
+        $(this).text(isFrozen ? "Resume Animation" : "Freeze Animation").css('background-color', isFrozen ? '#2ecc71' : '#f39c12');
+    });
+
+    function drawSatellite(x, y, angle) {
+        sarCtx.save();
+        sarCtx.translate(x, y);
+        sarCtx.rotate(angle * (Math.PI/180) - Math.PI/4);
+        sarCtx.fillStyle = "#aaa"; sarCtx.fillRect(-10, -5, 20, 10);
+        sarCtx.fillStyle = "#3498db"; sarCtx.fillRect(-25, -3, 15, 6); sarCtx.fillRect(10, -3, 15, 6);
+        sarCtx.strokeStyle = "white"; sarCtx.beginPath(); sarCtx.moveTo(0, 5); sarCtx.lineTo(0, 12); sarCtx.stroke();
+        sarCtx.restore();
+    }
+
+    // PHYSICS ENGINE (ORIGINAL FIDELITY)
     function draw_background() {
-        ctx.fillStyle = "#bbddee";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.beginPath();
-        ctx.strokeStyle = "yellow";
-        ctx.lineWidth = 1;
-        ctx.moveTo(0,yZero);
-        ctx.lineTo(canvas.width,yZero);
-        ctx.stroke();
+        ctx.fillStyle = "#bbddee"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.beginPath(); ctx.strokeStyle = "yellow"; ctx.lineWidth = 1; ctx.moveTo(0,yZero); ctx.lineTo(canvas.width,yZero); ctx.stroke();
         draw_water();
     }
-
     function draw_water() {
-        ctx.fillStyle = "#2c7bb6";
-        ctx.beginPath();
-        ctx.moveTo(0,yZero);
-        ctx.lineTo(0,canvas.height);
-        ctx.lineTo(canvas.width,canvas.height);
-        ctx.lineTo(canvas.width,yZero);
-        ctx.closePath();
-        ctx.fill();
+        ctx.fillStyle = "#2c7bb6"; ctx.beginPath(); ctx.moveTo(0,yZero); ctx.lineTo(0,canvas.height); ctx.lineTo(canvas.width,canvas.height); ctx.lineTo(canvas.width,yZero); ctx.closePath(); ctx.fill();
     }
-
-    draw_background();
-
-    // --- GEOMETRY UTILS ---
     function signedPolygonArea(vertices) {
         if (!vertices || vertices.length < 3) return 0;
         let total = 0;
         for (let i = 0; i < vertices.length; i++) {
-            const addX = vertices[i][0];
-            const addY = vertices[i == (vertices.length-1)?0:i+1][1];
-            const subX = vertices[i == (vertices.length-1)?0:i+1][0];
-            const subY = vertices[i][1];
-            total += (addX*addY*0.5);
-            total -= (subX*subY*0.5);
+            const addX = vertices[i][0], addY = vertices[i == (vertices.length-1)?0:i+1][1], subX = vertices[i == (vertices.length-1)?0:i+1][0], subY = vertices[i][1];
+            total += (addX*addY*0.5); total -= (subX*subY*0.5);
         }
         return total;
     }
-    function polygonArea(vertices) { return Math.abs(signedPolygonArea(vertices)); }
-
+    function polygonArea(v) { return Math.abs(signedPolygonArea(v)); }
     function rotate(cx, cy, x, y, angle){
         var rad=(Math.PI/180)*angle, cos=Math.cos(rad), sin=Math.sin(rad);
-        var nx=(cos*(x-cx)) + (sin*(y-cy)) + cx;
-        var ny=(cos*(y-cy)) - (sin*(x-cx)) + cy;
-        return [nx,ny];
+        return [(cos*(x-cx)) + (sin*(y-cy)) + cx, (cos*(y-cy)) - (sin*(x-cx)) + cy];
     }
-
     function pointSegmentDistance(p,v,w){
-        function sqr(x){return x*x;}
-        function dist2(v,w){return sqr(v[0]-w[0])+sqr(v[1]-w[1]);}
-        const l2=dist2(v,w);
-        if(l2===0) return Math.sqrt(dist2(p,v));
+        function sqr(x){return x*x;} function dist2(v,w){return sqr(v[0]-w[0])+sqr(v[1]-w[1]);}
+        const l2=dist2(v,w); if(l2===0) return Math.sqrt(dist2(p,v));
         let t=((p[0]-v[0])*(w[0]-v[0]) + (p[1]-v[1])*(w[1]-v[1]))/l2;
-        t=Math.max(0,Math.min(1,t));
-        return Math.sqrt(dist2(p,[v[0]+t*(w[0]-v[0]), v[1]+t*(w[1]-v[1])] ));
+        t=Math.max(0,Math.min(1,t)); return Math.sqrt(dist2(p,[v[0]+t*(w[0]-v[0]), v[1]+t*(w[1]-v[1])] ));
     }
-
     function centroid(pts){
-        let n=pts.length, off=pts[0], x=0, y=0, f, p1, p2;
-        let twicearea=0;
-        for (let i=0,j=n-1;i<n;j=i++){
-            p1=pts[i]; p2=pts[j];
-            f=(p1[0]-off[0])*(p2[1]-off[1])-(p2[0]-off[0])*(p1[1]-off[1]);
-            twicearea+=f; x+=(p1[0]+p2[0]-2*off[0])*f; y+=(p1[1]+p2[1]-2*off[1])*f;
-        }
-        f=twicearea*3;
-        return [x/f+off[0], y/f+off[1]];
+        let n=pts.length, off=pts[0], x=0, y=0, f, p1, p2, ta=0;
+        for (let i=0,j=n-1;i<n;j=i++){ p1=pts[i]; p2=pts[j]; f=(p1[0]-off[0])*(p2[1]-off[1])-(p2[0]-off[0])*(p1[1]-off[1]); ta+=f; x+=(p1[0]+p2[0]-2*off[0])*f; y+=(p1[1]+p2[1]-2*off[1])*f; }
+        f=ta*3; return [x/f+off[0], y/f+off[1]];
     }
-
     function getBounds(pts) {
-        let minX = pts[0][0], maxX = pts[0][0];
-        let minY = pts[0][1], maxY = pts[0][1];
-        pts.forEach(p => {
-            if (p[0] < minX) minX = p[0];
-            if (p[0] > maxX) maxX = p[0];
-            if (p[1] < minY) minY = p[1];
-            if (p[1] > maxY) maxY = p[1];
-        });
+        let minX = pts[0][0], maxX = pts[0][0], minY = pts[0][1], maxY = pts[0][1];
+        pts.forEach(p => { if (p[0] < minX) minX = p[0]; if (p[0] > maxX) maxX = p[0]; if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1]; });
         return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
     }
-
     function polygonMomentOfInertia(points){
-        function sub(a,b){return[a[0]-b[0],a[1]-b[1]];}
-        function add(a,b){return[a[0]+b[0],a[1]+b[1]];}
-        function mul(p,f){return[p[0]*f,p[1]*f];}
-        function dot(a,b){return a[0]*b[0]+a[1]*b[1];}
-        function cross(a,b){return a[0]*b[1]-b[0]*a[1];}
-        function dist(a,b){b=b||[0,0];return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2);}
+        function sub(a,b){return[a[0]-b[0],a[1]-b[1]];} function add(a,b){return[a[0]+b[0],a[1]+b[1]];}
+        function mul(p,f){return[p[0]*f,p[1]*f];} function dot(a,b){return a[0]*b[0]+a[1]*b[1];}
+        function cross(a,b){return a[0]*b[1]-b[0]*a[1];} function dist(a,b){b=b||[0,0];return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2);}
         let I=0;
         for(let i=1;i<points.length-1;i++){
             const p1=points[0],p2=points[i],p3=points[i+1];
             const w=dist(p1,p2), w1=Math.abs(dot(sub(p1,p2),sub(p3,p2))/w), w2=Math.abs(w-w1);
-            const s=cross(sub(p3,p1),sub(p2,p1))/2;
-            const h=2*Math.abs(s)/w;
-            const p4=add(p2,mul(sub(p1,p2),w1/w));
-            const cm1=[(p2[0]+p3[0]+p4[0])/3,(p2[1]+p3[1]+p4[1])/3];
-            const cm2=[(p1[0]+p3[0]+p4[0])/3,(p1[1]+p3[1]+p4[1])/3];
+            const s=cross(sub(p3,p1),sub(p2,p1))/2, h=2*Math.abs(s)/w, p4=add(p2,mul(sub(p1,p2),w1/w));
+            const cm1=[(p2[0]+p3[0]+p4[0])/3,(p2[1]+p3[1]+p4[1])/3], cm2=[(p1[0]+p3[0]+p4[0])/3,(p1[1]+p3[1]+p4[1])/3];
             const I1=w1*h*((h*h/4)+(w1*w1/12)), I2=w2*h*((h*h/4)+(w2*w2/12));
             const m1=0.5*w1*h, m2=0.5*w2*h;
-            const I1cm=I1-(m1*dist(cm1,p3)**2), I2cm=I2-(m2*dist(cm2,p3)**2);
-            const I1p=I1cm+m1*dist(cm1)**2, I2p=I2cm+m2*dist(cm2)**2;
-            if(cross(sub(p1,p3),sub(p4,p3))>0) I+=I1p; else I-=I1p;
-            if(cross(sub(p4,p3),sub(p2,p3))>0) I+=I2p; else I-=I2p;
+            const I1cm=I1-(m1*dist(cm1,p3)**2), I2cm=I2-(m2*dist(cm2,p3)**2), I1p=I1cm+m1*dist(cm1)**2, I2p=I2cm+m2*dist(cm2)**2;
+            if(cross(sub(p1,p3),sub(p4,p3))>0) I+=I1p; else I-=I1p; if(cross(sub(p4,p3),sub(p2,p3))>0) I+=I2p; else I-=I2p;
         }
         return Math.abs(I);
     }
-
-    // --- DRAWING LOGIC ---
-    function getMousePos(e){
-        if(e.originalEvent.touches) e = e.originalEvent.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        return [e.clientX - rect.left, e.clientY - rect.top];
-    }
-
+    function getMousePos(e){ if(e.originalEvent.touches) e = e.originalEvent.touches[0]; const rect = canvas.getBoundingClientRect(); return [e.clientX - rect.left, e.clientY - rect.top]; }
     function redrawDraft(){
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        draw_background();
+        ctx.clearRect(0,0,canvas.width,canvas.height); draw_background();
         if(drawingPoints.length === 0) return;
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 3;
-        ctx.lineJoin = "round";
-        ctx.beginPath();
-        ctx.moveTo(drawingPoints[0][0], drawingPoints[0][1]);
-        for(let i=1;i<drawingPoints.length;i++){
-            ctx.lineTo(drawingPoints[i][0], drawingPoints[i][1]);
+        ctx.strokeStyle = "black"; ctx.lineWidth = 3; ctx.lineJoin = "round"; ctx.beginPath();
+        ctx.moveTo(drawingPoints[0][0], drawingPoints[0][1]); for(let i=1;i<drawingPoints.length;i++) ctx.lineTo(drawingPoints[i][0], drawingPoints[i][1]);
+        ctx.stroke(); ctx.fillStyle = "red"; drawingPoints.forEach(p=>{ ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI*2); ctx.fill(); });
+    }
+
+    function updateSAR() {
+        sarCtx.fillStyle = "#010203"; sarCtx.fillRect(0,0,sarCanvas.width,sarCanvas.height);
+        const angleDeg = $("#angle").val(), angleRad = angleDeg * (Math.PI / 180), noiseAmt = $("#noise").val(), pol = $("#pol").val();
+        const er = $("#dielectric").val(), rough = $("#rough").val() / 100, vol = $("#volume").val() / 100;
+        drawSatellite(40, 40, angleDeg);
+        if(icebergs.length === 0) return;
+        const ice = icebergs[0], bounds = getBounds(ice.polygon);
+        sarCtx.strokeStyle = "rgba(255, 255, 0, 0.15)"; sarCtx.beginPath(); sarCtx.moveTo(40,40); sarCtx.lineTo(Math.cos(angleRad)*1000, Math.sin(angleRad)*1000); sarCtx.stroke();
+        sarCtx.save(); sarCtx.translate(0, -100);
+        sarCtx.fillStyle = "rgba(0,0,0,0.85)"; sarCtx.beginPath(); sarCtx.moveTo(bounds.maxX, bounds.minY);
+        sarCtx.lineTo(sarCanvas.width, bounds.minY + (sarCanvas.width - bounds.maxX) * Math.tan(angleRad * 0.25));
+        sarCtx.lineTo(sarCanvas.width, 500); sarCtx.lineTo(bounds.maxX, 500); sarCtx.fill();
+        let vIntensity = pol === "HV" ? vol : vol * 0.3;
+        sarCtx.fillStyle = `rgba(0, 255, 100, ${vIntensity * 0.45})`; sarCtx.beginPath();
+        ice.polygon.forEach((p,i)=> i==0 ? sarCtx.moveTo(p[0],p[1]) : sarCtx.lineTo(p[0],p[1])); sarCtx.fill();
+        let sAlpha = (er / 5) * (0.2 + rough*0.8) * Math.cos(angleRad);
+        sarCtx.strokeStyle = `rgba(180, 255, 255, ${sAlpha})`; sarCtx.lineWidth = 1 + (rough * 6); sarCtx.stroke();
+        if(!isFrozen) waveTime += 12; if(waveTime > sarCanvas.width) waveTime = 0;
+        sarCtx.beginPath();
+        for(let x=0; x<sarCanvas.width; x+=5){
+            let y = 150 + Math.sin(x*0.1 - waveTime*0.1) * 15;
+            let isHitting = (x > bounds.minX && x < bounds.maxX);
+            sarCtx.strokeStyle = isHitting ? "#00ffff" : "rgba(100, 100, 255, 0.2)";
+            if(x==0) sarCtx.moveTo(x,y); else { sarCtx.lineTo(x,y); sarCtx.stroke(); sarCtx.beginPath(); sarCtx.moveTo(x,y); }
         }
-        ctx.stroke();
-        ctx.fillStyle = "red";
-        drawingPoints.forEach(p=>{
-            ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI*2); ctx.fill();
-        });
+        sarCtx.restore();
+        if(noiseAmt > 0) {
+           for(let i=0; i < (noiseAmt * 20); i++) {
+               let nX = Math.random() * sarCanvas.width, nY = Math.random() * sarCanvas.height;
+               let lum = Math.random() > 0.5 ? 255 : 0;
+               sarCtx.fillStyle = `rgba(${lum},${lum},${lum}, ${noiseAmt/200})`; sarCtx.fillRect(nX, nY, 1, 1);
+           }
+        }
+        let newState = "Transmitting Pulse...";
+        if (waveTime > bounds.minX && waveTime < bounds.maxX) newState = "INTERACTING / BACKSCATTER";
+        else if (waveTime >= bounds.maxX) newState = "Pulse Propagating...";
+        if(newState !== currentRadarState) { currentRadarState = newState; $("#modeStatus").text(currentRadarState); }
+        $("#physicsDesc").text(`Beam: ${angleDeg}° | Backscatter: ${ (sAlpha + vIntensity).toFixed(2) } | Pol: ${pol}`);
     }
 
-    function finishDrawing() {
-        if(!isDrawing || drawingPoints.length < 3) return;
-        addIceberg(drawingPoints);
-        classifyIceberg(icebergs[0]);
-        drawingPoints = [];
-        isDrawing = false;
-        $("#completeBtn").hide();
-    }
+    $('#canvas').on('mousedown touchstart', function(e){ if(icebergs.length > 0) return; if(e.type === 'touchstart') e.preventDefault(); drawingPoints.push(getMousePos(e)); isDrawing = true; $("#completeBtn").show(); redrawDraft(); });
+    function finishDrawing() { if(!isDrawing || drawingPoints.length < 3) return; addIceberg(drawingPoints); classifyIceberg(icebergs[0]); drawingPoints = []; isDrawing = false; $("#completeBtn").hide(); }
+    $('#canvas').on('dblclick', finishDrawing); $('#completeBtn').on('click', finishDrawing);
+    $('#resetBtn').on('click', function(){ icebergs = []; drawingPoints = []; isDrawing = false; lastClassification = null; $("#completeBtn").hide(); $("#classification").html("Draw an iceberg to see classification."); redrawDraft(); });
 
-    $('#canvas').on('click touchstart', function(e){
-        if(icebergs.length > 0) return;
-        if(e.type === 'touchstart') e.preventDefault();
-        drawingPoints.push(getMousePos(e));
-        isDrawing = true;
-        $("#completeBtn").show();
-        redrawDraft();
-    });
-
-    $('#canvas').on('dblclick', finishDrawing);
-    $('#completeBtn').on('click touchstart', function(e){ e.preventDefault(); finishDrawing(); });
-    
-    $('#resetBtn').on('click', function(){
-        icebergs = [];
-        drawingPoints = [];
-        isDrawing = false;
-        lastClassification = null;
-        $("#completeBtn").hide();
-        $("#classification").html("Draw an iceberg to see classification.");
-        redrawDraft();
-    });
-
-    // --- PHYSICS & CLASSIFICATION ---
     function addIceberg(polygon){
-        polygon=polygon.concat([polygon[0]]);
-        let iceberg={polygon:polygon, velocity:[0,0,0]};
-        let seen={}; let poly2=[];
-        iceberg.polygon.forEach(pt=>{
-            const k=pt[0]+"|"+pt[1];
-            if(!(k in seen)){seen[k]=true; poly2.push(pt);}
-        });
-        iceberg.polygon=poly2; iceberg.polygon.push(iceberg.polygon[0]);
-        iceberg.area=signedPolygonArea(iceberg.polygon);
+        polygon=polygon.concat([polygon[0]]); let iceberg={polygon:polygon, velocity:[0,0,0]}; let seen={}; let poly2=[];
+        iceberg.polygon.forEach(pt=>{ const k=pt[0]+"|"+pt[1]; if(!(k in seen)){seen[k]=true; poly2.push(pt);} });
+        iceberg.polygon=poly2; iceberg.polygon.push(iceberg.polygon[0]); iceberg.area=signedPolygonArea(iceberg.polygon);
         if(iceberg.area<0){iceberg.polygon=iceberg.polygon.reverse(); iceberg.area=Math.abs(iceberg.area);}
         iceberg.rotationalInertia=polygonMomentOfInertia(iceberg.polygon)/Math.sqrt(iceberg.area)/1000000;
-
         let triangles=turf.tesselate(turf.polygon([iceberg.polygon])).features.map(f=>f.geometry.coordinates[0]);
-        triangles=triangles.map(t=>({triangle:t, area:polygonArea(t)/iceberg.area}));
-        iceberg.lumpedMassPoints=[];
+        triangles=triangles.map(t=>({triangle:t, area:polygonArea(t)/iceberg.area})); iceberg.lumpedMassPoints=[];
         for(let i=0;i<250;i++){
             let tR=Math.random(), tX=Math.random(), tY=Math.random(), ti;
-            for(ti=0;ti<triangles.length;ti++){
-                tR-=triangles[ti].area;
-                if(tR<=0||ti==triangles.length-1) break;
-            }
-            let t=triangles[ti].triangle;
-            function interp(r1,r2,a,b,c){return (1-Math.sqrt(r1))*a + (Math.sqrt(r1)*(1-r2))*b + (Math.sqrt(r1)*r2)*c;}
+            for(ti=0;ti<triangles.length;ti++){ tR-=triangles[ti].area; if(tR<=0||ti==triangles.length-1) break; }
+            let t=triangles[ti].triangle; function interp(r1,r2,a,b,c){return (1-Math.sqrt(r1))*a + (Math.sqrt(r1)*(1-r2))*b + (Math.sqrt(r1)*r2)*c;}
             iceberg.lumpedMassPoints.push({point:[interp(tX,tY,t[0][0],t[1][0],t[2][0]), interp(tX,tY,t[0][1],t[1][1],t[2][1])]});
         }
-
-        let pMassTotal=0;
-        iceberg.lumpedMassPoints.forEach(p=>{
-            for(let i=0;i<iceberg.polygon.length-1;i++){
-                let d=pointSegmentDistance(p.point, iceberg.polygon[i], iceberg.polygon[i+1]);
-                if(!p.mass||d<p.mass) p.mass=d;
-            }
-            pMassTotal+=p.mass;
-        });
-        iceberg.lumpedMassPoints.forEach(p=>p.mass/=pMassTotal);
-
-        let yMin=null, yMax=null;
-        iceberg.polygon.forEach((pt,i)=>{
-            if(i==0||pt[1]<yMin) yMin=pt[1];
-            if(i==0||pt[1]>yMax) yMax=pt[1];
-        });
-        iceberg.height=yMax-yMin;
-        icebergs=[iceberg];
+        let pMassTotal=0; iceberg.lumpedMassPoints.forEach(p=>{ for(let i=0;i<iceberg.polygon.length-1;i++){ let d=pointSegmentDistance(p.point, iceberg.polygon[i], iceberg.polygon[i+1]); if(!p.mass||d<p.mass) p.mass=d; } pMassTotal+=p.mass; });
+        iceberg.lumpedMassPoints.forEach(p=>p.mass/=pMassTotal); let yMin=null, yMax=null;
+        iceberg.polygon.forEach((pt,i)=>{ if(i==0||pt[1]<yMin) yMin=pt[1]; if(i==0||pt[1]>yMax) yMax=pt[1]; }); iceberg.height=yMax-yMin; icebergs=[iceberg];
     }
 
     function iceberger(iceberg) {
-        const time_scale = 1.1;
-        const specific_gravity = 0.92; 
-        const pc = centroid(iceberg.polygon);
-
-        let polygon_submerged = turf.bboxClip(
-            turf.polygon([iceberg.polygon]),
-            [-Infinity, yZero, Infinity, Infinity]
-        ).geometry.coordinates[0];
-
+        if(isFrozen) return; const time_scale = 1.1, specific_gravity = 0.92, pc = centroid(iceberg.polygon);
+        let polygon_submerged = turf.bboxClip(turf.polygon([iceberg.polygon]), [-Infinity, yZero, Infinity, Infinity]).geometry.coordinates[0];
         if (!polygon_submerged || polygon_submerged.length < 4) polygon_submerged = null;
-        const pc_submerged = polygon_submerged ? centroid(polygon_submerged) : [0,0];
         const submerged_ratio = polygon_submerged ? polygonArea(polygon_submerged) / iceberg.area : 0;
-
-        let force = [0,0,0];
-        iceberg.lumpedMassPoints.forEach(p=>{
-            let f=p.mass;
-            let s=(p.point[1]-yZero)/(iceberg.height/20);
-            s=Math.min(Math.max(s,0),1);
-            f-=p.mass/specific_gravity*s;
-            force[1]+=f;
-            force[2]-=f*(p.point[0]-pc[0]);
-        });
-
-        let perimeter=0;
+        let force = [0,0,0]; iceberg.lumpedMassPoints.forEach(p=>{ let f=p.mass, s=(p.point[1]-yZero)/(iceberg.height/20); s=Math.min(Math.max(s,0),1); f-=p.mass/specific_gravity*s; force[1]+=f; force[2]-=f*(p.point[0]-pc[0]); });
+        let perimeter=0; for(let i=1;i<iceberg.polygon.length;i++){ const p0=iceberg.polygon[i-1], p1=iceberg.polygon[i], dx=p1[0]-p0[0], dy=p1[1]-p0[1]; perimeter+=Math.sqrt(dx*dx+dy*dy); }
         for(let i=1;i<iceberg.polygon.length;i++){
-            const p0=iceberg.polygon[i-1], p1=iceberg.polygon[i];
-            const dx=p1[0]-p0[0], dy=p1[1]-p0[1];
-            perimeter+=Math.sqrt(dx*dx+dy*dy);
+            const p0=iceberg.polygon[i-1], p1=iceberg.polygon[i]; let v=[p1[1]-p0[1], -(p1[0]-p0[0])]; v[0]/=perimeter; v[1]/=perimeter;
+            let f=v[0]*iceberg.velocity[0]+v[1]*iceberg.velocity[1]; if(f<0) continue; f*=(1+2*submerged_ratio); f=[-v[0]*f, -v[1]*f]; force[0]+=f[0];
+            const mid=[(p0[0]+p1[0])/2,(p0[1]+p1[1])/2]; let torque=f[0]*(mid[1]-pc[1])-f[1]*(mid[0]-pc[0]); if(Math.abs(torque)>1) torque=Math.sign(torque); force[2]+=torque;
         }
-
-        for(let i=1;i<iceberg.polygon.length;i++){
-            const p0=iceberg.polygon[i-1], p1=iceberg.polygon[i];
-            let v=[p1[1]-p0[1], -(p1[0]-p0[0])];
-            v[0]/=perimeter; v[1]/=perimeter;
-            let f=v[0]*iceberg.velocity[0]+v[1]*iceberg.velocity[1];
-            if(f<0) continue;
-            f*=(1+2*submerged_ratio);
-            f=[-v[0]*f, -v[1]*f];
-            force[0]+=f[0];
-            const mid=[(p0[0]+p1[0])/2,(p0[1]+p1[1])/2];
-            let torque=f[0]*(mid[1]-pc[1])-f[1]*(mid[0]-pc[0]);
-            if(Math.abs(torque)>1) torque=Math.sign(torque);
-            force[2]+=torque;
-        }
-
-        iceberg.velocity[0]+=force[0]*time_scale;
-        iceberg.velocity[1]+=force[1]*time_scale;
-        iceberg.velocity[2]+=force[2]/iceberg.rotationalInertia*time_scale;
-
-        const damping_air=0.99, damping_water=0.96;
-        const damping=damping_air*(1-submerged_ratio)+damping_water*submerged_ratio;
-        iceberg.velocity[0]*=damping;
-        iceberg.velocity[1]*=damping;
-        iceberg.velocity[2]*=(damping-0.1);
-
-        function update_point(pt){
-            pt=rotate(pc[0],pc[1],pt[0],pt[1],iceberg.velocity[2]);
-            pt[0]+=iceberg.velocity[0]; pt[1]+=iceberg.velocity[1];
-            return pt;
-        }
-        iceberg.polygon=iceberg.polygon.map(update_point);
-        iceberg.lumpedMassPoints.forEach(p=>{p.point=update_point(p.point);});
+        iceberg.velocity[0]+=force[0]*time_scale; iceberg.velocity[1]+=force[1]*time_scale; iceberg.velocity[2]+=force[2]/iceberg.rotationalInertia*time_scale;
+        const damping_air=0.99, damping_water=0.96; const damping=damping_air*(1-submerged_ratio)+damping_water*submerged_ratio;
+        iceberg.velocity[0]*=damping; iceberg.velocity[1]*=damping; iceberg.velocity[2]*=(damping-0.1);
+        function update_point(pt){ pt=rotate(pc[0],pc[1],pt[0],pt[1],iceberg.velocity[2]); pt[0]+=iceberg.velocity[0]; pt[1]+=iceberg.velocity[1]; return pt; }
+        iceberg.polygon=iceberg.polygon.map(update_point); iceberg.lumpedMassPoints.forEach(p=>{p.point=update_point(p.point);});
     }
 
     function classifyIceberg(iceberg) {
-        const pts = iceberg.polygon.slice(0, -1);
-        const bounds = getBounds(pts);
-        const aspect = bounds.width / bounds.height;
-
-        const minY = bounds.minY;
-        const topPoints = pts.filter(p => p[1] < minY + (bounds.height * 0.2));
-        const topWidth = Math.max(...topPoints.map(p => p[0])) - Math.min(...topPoints.map(p => p[0]));
-        const flatness = topWidth / bounds.width;
-
-        const middlePoints = pts.filter(p => p[0] > bounds.minX + (bounds.width * 0.3) && p[0] < bounds.maxX - (bounds.width * 0.3));
-        const middleHighestY = middlePoints.length > 0 ? Math.min(...middlePoints.map(p => p[1])) : minY;
-        const notchDepth = (middleHighestY - minY) / bounds.height;
-
-        const leftHalf = pts.filter(p => p[0] < bounds.minX + bounds.width/2);
-        const rightHalf = pts.filter(p => p[0] >= bounds.minX + bounds.width/2);
-        const leftMinY = Math.min(...leftHalf.map(p => p[1]));
-        const rightMinY = Math.min(...rightHalf.map(p => p[1]));
-        const asymmetry = Math.abs(leftMinY - rightMinY) / bounds.height;
-
-        const scores = {};
-        scores['Drydock'] = Math.min(1.0, notchDepth * 3);
-        scores['Tabular'] = (aspect > 1.5 ? 1.0 : 0.2) * flatness * (1 - scores['Drydock']);
-        scores['Pinnacle'] = (aspect < 1.0 ? 1.0 : 0.5) * (1 - flatness) * (1 - scores['Drydock']);
-        scores['Wedge'] = asymmetry * (1 - flatness);
-        scores['Dome'] = Math.max(0, 1 - Math.abs(aspect - 1.2)) * (flatness > 0.3 && flatness < 0.7 ? 1.0 : 0.2);
-        scores['Blocky'] = Math.max(0, 1 - Math.abs(aspect - 1)) * flatness * (1 - scores['Drydock']);
-        scores['Irregular'] = 0.15 + (asymmetry * 0.5);
-
-        const total = Object.values(scores).reduce((a, b) => a + b, 0) || 1;
-        for (const k in scores) scores[k] = (scores[k] / total * 100).toFixed(1);
-
-        lastClassification = scores;
-    }
-
-    function renderClassification(){
-        const el = document.getElementById("classification");
-        if(!lastClassification){el.innerHTML="Draw an iceberg to see classification."; return;}
-        let html = "<strong>Classification probabilities:</strong><br>";
-        for(const k in lastClassification){
-            html+=`${k}: ${lastClassification[k]}%<br>`;
-        }
-        el.innerHTML = html;
+        const pts = iceberg.polygon.slice(0, -1); const b = getBounds(pts); const aspect = b.width / b.height;
+        const topPoints = pts.filter(p => p[1] < b.minY + (b.height * 0.2)); const topWidth = Math.max(...topPoints.map(p => p[0])) - Math.min(...topPoints.map(p => p[0]));
+        const flatness = topWidth / b.width; const midY = pts.filter(p => p[0] > b.minX + (b.width * 0.3) && p[0] < b.maxX - (b.width * 0.3));
+        const notchDepth = ((midY.length > 0 ? Math.min(...midY.map(p => p[1])) : b.minY) - b.minY) / b.height;
+        const leftHalf = pts.filter(p => p[0] < b.minX + b.width/2), rightHalf = pts.filter(p => p[0] >= b.minX + b.width/2);
+        const asymmetry = Math.abs(Math.min(...leftHalf.map(p => p[1])) - Math.min(...rightHalf.map(p => p[1]))) / b.height;
+        const s = {}; s['Drydock'] = Math.min(1.0, notchDepth * 3); s['Tabular'] = (aspect > 1.5 ? 1.0 : 0.2) * flatness * (1 - s['Drydock']); s['Pinnacle'] = (aspect < 1.0 ? 1.0 : 0.5) * (1 - flatness) * (1 - s['Drydock']); s['Wedge'] = asymmetry * (1 - flatness); s['Dome'] = Math.max(0, 1 - Math.abs(aspect - 1.2)) * (flatness > 0.3 && flatness < 0.7 ? 1.0 : 0.2); s['Blocky'] = Math.max(0, 1 - Math.abs(aspect - 1)) * flatness * (1 - s['Drydock']); s['Irregular'] = 0.15 + (asymmetry * 0.5);
+        const tot = Object.values(s).reduce((a, b) => a + b, 0) || 1; for (const k in s) s[k] = (s[k] / tot * 100).toFixed(1); lastClassification = s;
     }
 
     function tick(){
-        if(isDrawing || icebergs.length==0) return;
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        draw_background();
-        icebergs.forEach(iceberg=>{
-            iceberger(iceberg);
-            ctx.strokeStyle="black"; ctx.fillStyle="white";
-            ctx.lineWidth=2; ctx.lineJoin="round"; ctx.beginPath();
-            ctx.moveTo(iceberg.polygon[0][0],iceberg.polygon[0][1]);
-            iceberg.polygon.forEach(pt=>ctx.lineTo(pt[0],pt[1]));
-            ctx.closePath(); ctx.fill(); ctx.stroke();
-        });
+        if(isDrawing) { redrawDraft(); return; } if(icebergs.length==0) return;
+        ctx.clearRect(0,0,canvas.width,canvas.height); draw_background();
+        icebergs.forEach(iceberg=>{ iceberger(iceberg); ctx.strokeStyle="black"; ctx.fillStyle="white"; ctx.lineWidth=2; ctx.lineJoin="round"; ctx.beginPath(); ctx.moveTo(iceberg.polygon[0][0],iceberg.polygon[0][1]); iceberg.polygon.forEach(pt=>ctx.lineTo(pt[0],pt[1])); ctx.closePath(); ctx.fill(); ctx.stroke(); });
         ctx.globalAlpha=0.5; draw_water(); ctx.globalAlpha=1;
-        if(icebergs.length > 0 && lastClassification) renderClassification();
+        if(lastClassification){ let html = "<strong>Classification probabilities:</strong><br>"; for(const k in lastClassification) html+=`${k}: ${lastClassification[k]}%<br>`; document.getElementById("classification").innerHTML = html; }
+        updateSAR();
     }
-
-    setInterval(tick,50);
+    draw_background(); setInterval(tick,50);
 });
 </script>
 </body>
