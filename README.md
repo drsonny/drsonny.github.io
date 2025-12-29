@@ -4,7 +4,7 @@ An interactive, browser-based simulator that combines **high-fidelity buoyancy p
 
 Draw a custom iceberg and watch it stabilize in real-time while observing how its geometry creates unique radar signatures.
 
-## 🚀 [Live Demo on GitHub Pages]([https://drsonny.github.io/])
+## 🚀 [Live Demo: Click Here to Launch](https://drsonny.github.io/)
 
 ---
 
